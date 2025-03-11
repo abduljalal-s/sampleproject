@@ -1,71 +1,77 @@
-import { useState } from 'react';
-import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+// index.jsx
+import { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import AddNotesModal from "../../components/AddNoteModal";
+import NoteList from "../../components/NoteList";
+import noteService from "../../services/noteService";
+
+
 
 const NoteScreen = () => {
-  const [notes] = useState([
-    {id: '1', text: 'Note One'},
-    {id: '2', text: 'Note Two'},
-    {id: '3', text: 'Note Three'},
-  ]);
+    const [notes, setNotes] = useState([ ]);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [newNote, setNewNote] = useState("");
+    const [loading, setLoading] =useState(true);
+    const [error, setError] = useState(null);
 
 
-const [modalVisible, setModalVisible] = useState(false);
-const [newNote, setNewNote] =useState ('');
+    useEffect (() =>{
+        fetchNotes();
+    },[]);
+
+    const fetchNotes = async () =>{
+        setLoading(true);
+        const response = await noteService.getNotes();
+
+        if (response.error){
+            setError(response.error);
+            Alert.alert ('Error', response.error);
+        }else {
+            setNotes(response.data);
+            setError(null);
+
+        }
+        setLoading(false); 
+    };
+
+    // add note
+    const addNote = async () => {
+        if (newNote.trim() === "") return;
+
+        const response = await noteService.addNote(newNote)
+
+if(response.error){
+Alert.alert('Error',response.error);
+}else {
+    setNotes([...notes, response.data]);
+}
 
 
-  return (
-    <View style={styles.container}>
-      <FlatList 
-        data={notes}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.noteItem}>
-            <Text style={styles.noteText}>{item.text}</Text>
-          </View>
-        )}
-      />
+        setNewNote("");
+        setModalVisible(false);
+    };
 
-      <TouchableOpacity style={styles.addButton}onPress={()=> setModalVisible(true) }>
-         <Text style={styles.addButtonText}>+Add Note </Text>
-         </TouchableOpacity>
+    return (
+        <View style={styles.container}>
+            <NoteList notes={notes} />
 
-         {/*Modal*/}
+            <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setModalVisible(true)}
+            >
+                <Text style={styles.addButtonText}>+Add Note</Text>
+            </TouchableOpacity>
 
-         <Modal 
-         visible={modalVisible}
-         animationType='slide'
-         transparent
-         onRequestClose={() => setModalVisible(false)}
-         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Add a New Note</Text>
-              <TextInput
-              style={styles.Input}
-              placeholder='Enter note..'
-              placeholderTextColor={'#aaa'}
-              value={newNote}
-              onChangeText={setNewNote}
-              />
-            <View style={styles.modalButtons}>
-
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false) }>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-
-               
-                <TouchableOpacity style={styles.saveButton}>
-                <Text style={styles.saveButtonText}>Save</Text>
-                </TouchableOpacity>
-
-
-
-            </View>
-              </View>
-          </View>
-         </Modal>
-    </View>
-  );
+            {/* Modal */}
+            <AddNotesModal
+                modalVisible={modalVisible}
+                setModalVisible={setModalVisible}
+                newNote={newNote}
+                setNewNote={setNewNote}
+                addNote={addNote}
+            />
+        </View>
+    );
 };
 
 const styles = StyleSheet.create({
